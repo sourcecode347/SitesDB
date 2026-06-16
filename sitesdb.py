@@ -342,7 +342,7 @@ def importdomainsdb():
             domain = line.strip()
             if not domain:
                 continue 
-            domain=domaincleaner(domain)  
+            domain=domaincleaner(urlparse(domain).netloc)  
             if insertdb(domain):
                 imported += 1
                 if imported % 1000 == 0:
