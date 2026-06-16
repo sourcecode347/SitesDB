@@ -13,6 +13,8 @@ To Setup SitesDB Script execute this command :
 
 To use the SitesDB Script execute this Command :
 
-    python EternalBlueScanner.py -h
+    python sitesdb.py -h
+
+    python sitesdb.py -c
 
 Have a nice day & Happy Hacking :)
