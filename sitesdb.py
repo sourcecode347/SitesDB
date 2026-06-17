@@ -153,13 +153,18 @@ def setup_database():
                 status TEXT,
                 cms TEXT DEFAULT 'none'
             )
-        ''')       
-        '''try:
-            cursor.execute("ALTER TABLE sites DROP COLUMN checked")
-            print(Fore.GREEN + "[+] Column checked dropped successfully")
-        except:
-            pass'''
+        ''')
+        cursor.execute("""
+            DELETE FROM sites 
+            WHERE domain IS NULL 
+               OR domain = '' 
+               OR TRIM(domain) = '' 
+               OR length(domain) < 3
+        """)
+        deleted = cursor.rowcount
         conn.commit()
+        if deleted > 0:
+            print(Fore.RED + f"[!] Deleted {deleted} wrong/empty domains")
 def insertdb(domain):
     with sqlite3.connect(sitesdatabase) as conn:
         cursor = conn.cursor()
@@ -181,7 +186,7 @@ def resetdb():
         ''')
         rows_affected = cursor.rowcount
         conn.commit()
-        return rows_affected
+    return rows_affected
 def setstatusdb(domain,status):
     with sqlite3.connect(sitesdatabase) as conn:
         cursor = conn.cursor()
@@ -310,7 +315,7 @@ def domaincleaner(domain):
         domain = domain[8:]
     if domain.startswith("www."):
         domain = domain[4:]
-    return domain
+    return domain.replace("/","")
 def filecreator(file_name):
     if not os.path.exists(file_name):
         with open(file_name, "w", encoding="utf-8") as f:
@@ -342,7 +347,12 @@ def importdomainsdb():
             domain = line.strip()
             if not domain:
                 continue 
-            domain=domaincleaner(urlparse(domain).netloc)  
+            d=domain
+            d=urlparse(d).netloc
+            if len(str(d).strip().replace(" ",""))==0:
+                domain=domaincleaner(domain)
+            else:
+                domain=domaincleaner(d) 
             if insertdb(domain):
                 imported += 1
                 if imported % 1000 == 0:
