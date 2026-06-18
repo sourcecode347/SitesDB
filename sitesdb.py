@@ -470,13 +470,32 @@ if __name__ == "__main__":
             total = cursor.fetchone()[0]
             print(Fore.WHITE + f"{total:,}")
     if cmslistbool == True:
+        maxtotal=0
         print(Fore.CYAN + "📋 Supported CMS Detection List:\n")
         print(Fore.WHITE + "   Available CMS:")
         for cms in CMS_SIGNATURES.keys():
-            print(Fore.GREEN + f"   • {cms}")
-        print(Fore.GREEN + f"   • Unknown")
-        print(Fore.GREEN + f"   • none")
-        print(Fore.CYAN + f"\nTotal supported CMS: {len(CMS_SIGNATURES) + 2}")
+            with sqlite3.connect(sitesdatabase) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM sites WHERE cms=? ",(cms,))
+                total = cursor.fetchone()[0]
+                maxtotal+=int(total)
+                print(Fore.GREEN + f"   • {cms} : {total}")
+            time.sleep(0.1)
+        with sqlite3.connect(sitesdatabase) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM sites WHERE cms='Unknown' ")
+            total = cursor.fetchone()[0]
+            maxtotal+=int(total)
+            print(Fore.GREEN + f"   • Unknown : {total}")
+        time.sleep(0.1)
+        with sqlite3.connect(sitesdatabase) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM sites WHERE cms='none' ")
+            total = cursor.fetchone()[0]
+            maxtotal+=int(total)
+            print(Fore.GREEN + f"   • none : {total}")
+        time.sleep(0.1)
+        print(Fore.CYAN + f"\nTotal supported CMS: {len(CMS_SIGNATURES) + 2} With Total Domains : {maxtotal}")
     if exportcmsbool==True:
         print(Fore.CYAN + f"📤 Starting export of domains with status=none and cms={exportcmsname} to {exportcmsname+".txt"}")
         filecreator(exportcmsname+".txt")    
