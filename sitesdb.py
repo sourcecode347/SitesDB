@@ -45,7 +45,7 @@ print(colored(logo , "green"))
 r = RandomWords()
 global sitesdatabase,crawl,exportfile,restdbbool,resetdbname,exportbool,importbool,importfile,totalbool,cmsbool, \
 cmscountbool,cmscountname,cmslistbool,exportcmsbool,exportcmsname,statusexportbool,statusexportfile,statuscountbool,statusvalue,cmsretestbool,cmsretestname, \
-executequerybool,executequery
+executequerybool,executequery,tor
 sitesdatabase="sitesdb.db"
 exportfile="domains.txt"
 crawl=False
@@ -67,6 +67,7 @@ cmsretestbool=False
 cmsretestname="Unknown"
 executequerybool=False
 executequery=""
+tor=False
 resetdbname=sitesdatabase
 importfile="domains.txt"
 help = '''
@@ -102,6 +103,8 @@ help = '''
 | --status-count   | Return Domains Count(*) in Database with Specific status         | none               |
 +------------------+------------------------------------------------------------------+--------------------+
 | --execute-query  | Execute SQL Query to Database                                    | NULL               |
++------------------+------------------------------------------------------------------+--------------------+
+| --tor            | Enable Tor Crawling if Tor Browser Running                       | False              |
 +------------------+------------------------------------------------------------------+--------------------+
 | Example Command  | python sitesdb.py -c -d newtargets.db                                                 |
 +----------------------------------------------------------------------------------------------------------+
@@ -143,6 +146,8 @@ for arg in range(0,len(sys.argv)):
     if sys.argv[arg-1]=="--execute-query":
         executequery=str(sys.argv[arg])
         executequerybool=True
+    if sys.argv[arg-1]=="--tor":
+        tor=True
     if sys.argv[arg-1]=="-t" or sys.argv[arg-1]=="--total":
         totalbool=True
     if sys.argv[arg-1]=="-h" or sys.argv[arg-1]=="--help":
@@ -486,13 +491,22 @@ def importdomainsdb():
 def openbrowser():
     global browser
     chrome_options = webdriver.ChromeOptions()
-    #chrome_options.add_argument('--headless')
+    # === Tor Proxy Options ===
+    if tor==True:
+        chrome_options.add_argument('--proxy-server=socks5://127.0.0.1:9150')
+    # === Chrome Options ===
+    chrome_options.add_argument('--host-resolver-rules="MAP * 0.0.0.0 , EXCLUDE localhost"')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--window-size=1280,800')
     chrome_options.add_argument('--log-level=3')
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')  # κρύβει το Selenium
+    chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    # === Setting ChromeDriver Path ===
     service = ChromeService(executable_path=chromedriver_path)
+    # === Open Browser ===
     browser = webdriver.Chrome(service=service, options=chrome_options)
     time.sleep(2)
 #############################################################################################
