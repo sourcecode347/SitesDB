@@ -199,11 +199,6 @@ def setstatusdb(domain,status):
         cursor = conn.cursor()
         cursor.execute("UPDATE sites SET status = ? WHERE domain = ?", (status, domain))
         conn.commit()
-def setcheckeddb(domain,checked):
-    with sqlite3.connect(sitesdatabase) as conn:
-        cursor = conn.cursor()
-        cursor.execute("UPDATE sites SET checked = ? WHERE domain = ?", (checked, domain))
-        conn.commit()
 def setcmsdb(domain,cms):
     with sqlite3.connect(sitesdatabase) as conn:
         cursor = conn.cursor()
@@ -219,7 +214,13 @@ def exportcmsdb(cmsname):
     with sqlite3.connect(sitesdatabase) as conn:
         conn.row_factory = lambda cursor, row: row[0]
         cursor = conn.cursor()
-        cursor.execute(f"SELECT domain FROM sites WHERE cms = '{cmsname}' ORDER BY id DESC LIMIT 5000")
+        cursor.execute(f"SELECT domain FROM sites WHERE cms = '{cmsname}' AND status='none' ORDER BY id DESC LIMIT 5000")
+        return cursor.fetchall()
+def retestcmsdb(cmsname):
+    with sqlite3.connect(sitesdatabase) as conn:
+        conn.row_factory = lambda cursor, row: row[0]
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT domain FROM sites WHERE cms = '{cmsname}' AND status='none' ORDER BY id DESC LIMIT 5000")
         return cursor.fetchall()
 def exportdomainsbycmsdb(cms):
     with sqlite3.connect(sitesdatabase) as conn:
@@ -529,23 +530,25 @@ if __name__ == "__main__":
             batch_num += 1
             domains = exportcmsdb('none')
             if not domains:
-                print(Fore.YELLOW + f"[!] No more domains with cms=none found.")
+                print(Fore.YELLOW + f"[!] No more domains with cms=none and status='none' found.")
                 break
             for d in domains:
                 setcmsdb(d,detect_cms(get_domain(d)))
+                setstatusdb(d,'cmsdetected')
         print(Fore.GREEN + f"\n[+] Detecting completed! {total:,} CMS of domains Updated to {sitesdatabase}")
     if cmsretestbool==True:
-        print(Fore.CYAN + f"📤 Starting ReDetecting CMS of domains with cms={cmsretestname} to {sitesdatabase}")   
+        print(Fore.CYAN + f"📤 Starting ReDetecting CMS of domains with cms={cmsretestname} and status=none to {sitesdatabase}")   
         total = 0
         batch_num = 0
         while True:
             batch_num += 1
-            domains = exportcmsdb(cmsretestname)
+            domains = retestcmsdb(cmsretestname)
             if not domains:
-                print(Fore.YELLOW + f"[!] No more domains with cms={cmsretestname} found.")
+                print(Fore.YELLOW + f"[!] No more domains with cms={cmsretestname} and status='none' found.")
                 break
             for d in domains:
                 setcmsdb(d,detect_cms(get_domain(d)))
+                setstatusdb(d,'cmsdetected')
         print(Fore.GREEN + f"\n[+] Detecting completed! {total:,} CMS={cmsretestname} of domains Updated to {sitesdatabase}")
     if cmscountbool==True:
         print(Fore.CYAN + f"📊 Total domains in DB : {sitesdatabase} with cms={cmscountname} : ", end="")
