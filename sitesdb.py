@@ -43,7 +43,7 @@ Coded By SourceCode347
 '''
 print(colored(logo , "green"))
 r = RandomWords()
-global sitesdatabase,crawl,exportfile,restdbbool,resetdbname,exportbool,importbool,importfile,totalbool,cmsbool, \
+global sitesdatabase,crawl,exportfile,restdbbool,exportbool,importbool,importfile,totalbool,cmsbool, \
 cmscountbool,cmscountname,cmslistbool,exportcmsbool,exportcmsname,statusexportbool,statusexportfile,statuscountbool,statusvalue,cmsretestbool,cmsretestname, \
 executequerybool,executequery,tor,exportlimit
 sitesdatabase="sitesdb.db"
@@ -68,7 +68,6 @@ cmsretestname="Unknown"
 executequerybool=False
 executequery=""
 tor=False
-resetdbname=sitesdatabase
 exportlimit=9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
 importfile="domains.txt"
 help = '''
@@ -87,7 +86,7 @@ help = '''
 +------------------+--------------------------------------------------------------------------+--------------------+
 | -i , --import    | Import Domains from file to Database ( -i newtargets.txt )               | domains.txt        |
 +------------------+--------------------------------------------------------------------------+--------------------+
-| -r , --resetdb   | Setting to All Domains status=none   ( -r test.db )                      | sitesdb.db         |
+| -r , --resetdb   | Setting to All Domains status=none   ( -r -d test.db )                   | sitesdb.db         |
 +------------------+--------------------------------------------------------------------------+--------------------+
 | -t , --total     | Return Domains Count(*) in Database  (-t -d test.db )                    | False              |
 +------------------+--------------------------------------------------------------------------+--------------------+
@@ -199,7 +198,7 @@ def insertdb(domain):
         conn.commit()
         return True
 def resetdb():
-    with sqlite3.connect(resetdbname) as conn:
+    with sqlite3.connect(sitesdatabase) as conn:
         cursor = conn.cursor() 
         cursor.execute('''
             UPDATE sites 
@@ -547,7 +546,7 @@ if __name__ == "__main__":
                     setcmsdb(domain,detect_cms(get_domain(domain)))
     if resetdbbool==True:
         res=resetdb()
-        print(Fore.CYAN + f"[+] DB : {resetdbname} Has Reseted , {res} Rows Affected")
+        print(Fore.CYAN + f"[+] DB : {sitesdatabase} Has Reseted , {res} Rows Affected")
     if exportbool==True:
         print(Fore.CYAN + f"📤 Starting export of domains with status=none to {exportfile} to to DB : {sitesdatabase}")
         filecreator(exportfile)    
