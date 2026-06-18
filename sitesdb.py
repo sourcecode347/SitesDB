@@ -45,7 +45,7 @@ print(colored(logo , "green"))
 r = RandomWords()
 global sitesdatabase,crawl,exportfile,restdbbool,resetdbname,exportbool,importbool,importfile,totalbool,cmsbool, \
 cmscountbool,cmscountname,cmslistbool,exportcmsbool,exportcmsname,statusexportbool,statusexportfile,statuscountbool,statusvalue,cmsretestbool,cmsretestname, \
-executequerybool,executequery,tor
+executequerybool,executequery,tor,exportlimit
 sitesdatabase="sitesdb.db"
 exportfile="domains.txt"
 crawl=False
@@ -69,45 +69,48 @@ executequerybool=False
 executequery=""
 tor=False
 resetdbname=sitesdatabase
+exportlimit=9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
 importfile="domains.txt"
 help = '''
-+------------------+------------------------------------------------------------------+--------------------+
-| Argument         | Info                                                             | Default            |
-+------------------+------------------------------------------------------------------+--------------------+
-| -h , --help      | Printing Help Of Arguments                                       | NULL               |
-+------------------+------------------------------------------------------------------+--------------------+
-| -c , --crawl     | Crawling New Sites to Database                                   | False              |
-+------------------+------------------------------------------------------------------+--------------------+
-| -d , --database  | Name of Database to Use                                          | sitesdb.db         |
-+------------------+------------------------------------------------------------------+--------------------+
-| -e , --export    | Export Domains to file if status=none and set status=exported    | domains.txt        |
-+------------------+------------------------------------------------------------------+--------------------+
-| -i , --import    | Import Domains from file to Database                             | domains.txt        |
-+------------------+------------------------------------------------------------------+--------------------+
-| -r , --resetdb   | Setting to All Domains status=none                               | sitesdb.db         |
-+------------------+------------------------------------------------------------------+--------------------+
-| -t , --total     | Return Domains Count(*) in Database                              | False              |
-+------------------+------------------------------------------------------------------+--------------------+
-| --cms            | Detect CMS of Domains in Database with value cms=none            | False              |
-+------------------+------------------------------------------------------------------+--------------------+
-| --cms-count      | Return Domains Count(*) in Database with Specific CMS            | Unknown            |
-+------------------+------------------------------------------------------------------+--------------------+
-| --cms-list       | Printing Supported CMS List                                      | False              |
-+------------------+------------------------------------------------------------------+--------------------+
-| --cms-export     | Export Domains by CMS and set status=exported ( CMSName.txt )    | Unknown            |
-+------------------+------------------------------------------------------------------+--------------------+
-| --cms-retest     | Run New CMS Detection Where CMSName ( --cms-retest CMSName )     | Unknown            |
-+------------------+------------------------------------------------------------------+--------------------+
-| --status-export  | Setting status=exported From File list                           | domains.txt        |
-+------------------+------------------------------------------------------------------+--------------------+
-| --status-count   | Return Domains Count(*) in Database with Specific status         | none               |
-+------------------+------------------------------------------------------------------+--------------------+
-| --execute-query  | Execute SQL Query to Database                                    | NULL               |
-+------------------+------------------------------------------------------------------+--------------------+
-| --tor            | Enable Tor Crawling if Tor Browser Running                       | False              |
-+------------------+------------------------------------------------------------------+--------------------+
-| Example Command  | python sitesdb.py -c -d newtargets.db                                                 |
-+----------------------------------------------------------------------------------------------------------+
++------------------+--------------------------------------------------------------------------+--------------------+
+| Argument         | Info                                                                     | Default            |
++------------------+--------------------------------------------------------------------------+--------------------+
+| -h , --help      | Printing Help Of Arguments ( -h )                                        | NULL               |
++------------------+--------------------------------------------------------------------------+--------------------+
+| -c , --crawl     | Crawling New Sites to Database ( -c )                                    | False              |
++------------------+--------------------------------------------------------------------------+--------------------+
+| -d , --database  | Name of Database to Use ( -d test.db )                                   | sitesdb.db         |
++------------------+--------------------------------------------------------------------------+--------------------+
+| -e , --export    | Export Domains to file if status=none and set status=exported            | domains.txt        |
++------------------+--------------------------------------------------------------------------+--------------------+
+| --export-limit   | Export Limit Integer ( -e targets.txt --export-limit 50000 )             | Unlimited          |
++------------------+--------------------------------------------------------------------------+--------------------+
+| -i , --import    | Import Domains from file to Database ( -i newtargets.txt )               | domains.txt        |
++------------------+--------------------------------------------------------------------------+--------------------+
+| -r , --resetdb   | Setting to All Domains status=none   ( -r test.db )                      | sitesdb.db         |
++------------------+--------------------------------------------------------------------------+--------------------+
+| -t , --total     | Return Domains Count(*) in Database  (-t -d test.db )                    | False              |
++------------------+--------------------------------------------------------------------------+--------------------+
+| --cms            | Detect CMS of Domains in Database with value cms=none (-cms )            | False              |
++------------------+--------------------------------------------------------------------------+--------------------+
+| --cms-count      | Return Domains of CMS Count(*) ( --cms-count WordPress )                 | Unknown            |
++------------------+--------------------------------------------------------------------------+--------------------+
+| --cms-list       | Printing Supported CMS List ( --cms-list )                               | False              |
++------------------+--------------------------------------------------------------------------+--------------------+
+| --cms-export     | Export Domains by CMS and set status=exported ( --cms-export WordPress ) | Unknown            |
++------------------+--------------------------------------------------------------------------+--------------------+
+| --cms-retest     | Run New CMS Detection Where CMSName ( --cms-retest Unknown )             | cmsdetected        |
++------------------+--------------------------------------------------------------------------+--------------------+
+| --status-export  | Setting status=exported From File list ( --status-export list.txt )      | domains.txt        |
++------------------+--------------------------------------------------------------------------+--------------------+
+| --status-count   | Return Domains Count(*) by status ( --status-count none )                | none               |
++------------------+--------------------------------------------------------------------------+--------------------+
+| --execute-query  | Execute SQL Query to Database ( --execute-query "SELECT * FROM sites" )  | NULL               |
++------------------+--------------------------------------------------------------------------+--------------------+
+| --tor            | Enable Tor Crawling if Tor Browser Running  ( --tor )                    | False              |
++------------------+--------------------------------------------------------------------------+--------------------+
+| Example Command  | python sitesdb.py -c -d newtargets.db --tor                                                   |
++------------------------------------------------------------------------------------------------------------------+
 '''
 for arg in range(0,len(sys.argv)):
     if sys.argv[arg-1]=="-d" or sys.argv[arg-1]=="--database":
@@ -146,6 +149,8 @@ for arg in range(0,len(sys.argv)):
     if sys.argv[arg-1]=="--execute-query":
         executequery=str(sys.argv[arg])
         executequerybool=True
+    if sys.argv[arg-1]=="--export-limit":
+        exportlimit=int(sys.argv[arg])
     if sys.argv[arg-1]=="--tor":
         tor=True
     if sys.argv[arg-1]=="-t" or sys.argv[arg-1]=="--total":
@@ -544,11 +549,14 @@ if __name__ == "__main__":
         res=resetdb()
         print(Fore.CYAN + f"[+] DB : {resetdbname} Has Reseted , {res} Rows Affected")
     if exportbool==True:
-        print(Fore.CYAN + f"📤 Starting export of domains with status=none to {exportfile}")
+        print(Fore.CYAN + f"📤 Starting export of domains with status=none to {exportfile} to to DB : {sitesdatabase}")
         filecreator(exportfile)    
         total_exported = 0
         batch_num = 0
         while True:
+            print(exportlimit)
+            if exportlimit<=total_exported:
+                break
             batch_num += 1
             domains = exportdomainsdb()
             if not domains:
@@ -648,11 +656,13 @@ if __name__ == "__main__":
         time.sleep(0.1)
         print(Fore.CYAN + f"\nTotal supported CMS: {len(CMS_SIGNATURES) + 2} With Total Domains : {maxtotal}")
     if exportcmsbool==True:
-        print(Fore.CYAN + f"📤 Starting export of domains with status=none and cms={exportcmsname} to {exportcmsname+".txt"}")
+        print(Fore.CYAN + f"📤 Starting export of domains with status=none and cms={exportcmsname} to {exportcmsname+".txt"} From DB : {sitesdatabase}")
         filecreator(exportcmsname+".txt")    
         total_exported = 0
         batch_num = 0
         while True:
+            if exportlimit<=total_exported:
+                break
             batch_num += 1
             domains = exportdomainsbycmsdb(exportcmsname)
             if not domains:
