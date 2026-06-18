@@ -21,7 +21,7 @@ from random_word import RandomWords
 from termcolor import colored
 import colorama
 colorama.init()
-from colorama import init, Fore
+from colorama import init, Fore, Style
 from urllib.parse import urlparse
 import sqlite3
 import requests
@@ -44,7 +44,8 @@ Coded By SourceCode347
 print(colored(logo , "green"))
 r = RandomWords()
 global sitesdatabase,crawl,exportfile,restdbbool,resetdbname,exportbool,importbool,importfile,totalbool,cmsbool, \
-cmscountbool,cmscountname,cmslistbool,exportcmsbool,exportcmsname,statusexportbool,statusexportfile,statuscountbool,statusvalue,cmsretestbool,cmsretestname
+cmscountbool,cmscountname,cmslistbool,exportcmsbool,exportcmsname,statusexportbool,statusexportfile,statuscountbool,statusvalue,cmsretestbool,cmsretestname, \
+executequerybool,executequery
 sitesdatabase="sitesdb.db"
 exportfile="domains.txt"
 crawl=False
@@ -64,6 +65,8 @@ statuscountbool=False
 statusvalue="none"
 cmsretestbool=False
 cmsretestname="Unknown"
+executequerybool=False
+executequery=""
 resetdbname=sitesdatabase
 importfile="domains.txt"
 help = '''
@@ -98,11 +101,9 @@ help = '''
 +------------------+------------------------------------------------------------------+--------------------+
 | --status-count   | Return Domains Count(*) in Database with Specific status         | none               |
 +------------------+------------------------------------------------------------------+--------------------+
+| --execute-query  | Execute SQL Query to Database                                    | NULL               |
++------------------+------------------------------------------------------------------+--------------------+
 | Example Command  | python sitesdb.py -c -d newtargets.db                                                 |
-+----------------------------------------------------------------------------------------------------------+
-| Example Command  | python sitesdb.py -e targets.txt                                                      |
-+----------------------------------------------------------------------------------------------------------+
-| Example Command  | python sitesdb.py -r -d sitesdb.db                                                    |
 +----------------------------------------------------------------------------------------------------------+
 '''
 for arg in range(0,len(sys.argv)):
@@ -139,6 +140,9 @@ for arg in range(0,len(sys.argv)):
     if sys.argv[arg-1]=="--status-count":
         statusvalue=str(sys.argv[arg])
         statuscountbool=True
+    if sys.argv[arg-1]=="--execute-query":
+        executequery=str(sys.argv[arg])
+        executequerybool=True
     if sys.argv[arg-1]=="-t" or sys.argv[arg-1]=="--total":
         totalbool=True
     if sys.argv[arg-1]=="-h" or sys.argv[arg-1]=="--help":
@@ -228,6 +232,49 @@ def exportdomainsbycmsdb(cms):
         cursor = conn.cursor()
         cursor.execute("SELECT domain FROM sites WHERE status = 'none' AND cms=? ORDER BY id DESC LIMIT 5000",(cms,))
         return cursor.fetchall()
+def execute_query(sql: str, params=None, fetchall=True, print_results=True):
+    """
+    Examples:
+        execute_query("SELECT * FROM sites LIMIT 10")
+        execute_query("SELECT COUNT(*) as total FROM sites")
+        execute_query("SELECT * FROM sites WHERE cms = ?", ("WordPress",))
+    """
+    try:
+        with sqlite3.connect(sitesdatabase) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            if params:
+                cursor.execute(sql, params)
+            else:
+                cursor.execute(sql)
+            if sql.strip().upper().startswith("SELECT"):
+                rows = cursor.fetchall() if fetchall else cursor.fetchone()
+                if not rows:
+                    print(Fore.YELLOW + "[-] Not Found Results "+ Style.RESET_ALL)
+                    return None
+                if print_results:
+                    print(Fore.CYAN + f"\n[+] Query Results:" + Style.RESET_ALL)
+                    print(Fore.CYAN + f"    {sql[:120]}{'...' if len(sql) > 120 else ''}" + Style.RESET_ALL)
+                    print("-" * 100)
+                    headers = [description[0] for description in cursor.description]
+                    print(Fore.WHITE + " | ".join(f"{h:<30}" for h in headers) + Style.RESET_ALL)
+                    print("-" * 100)
+                    if isinstance(rows, dict):
+                        rows = [rows]
+                    for row in rows:
+                        print(" | ".join(f"{str(row[h]):<30}" for h in headers))
+                    print(f"\n{Fore.GREEN}Total: {len(rows)} Rows{Style.RESET_ALL}\n")
+                return rows
+            # INSERT / UPDATE / DELETE
+            else:
+                conn.commit()
+                affected = cursor.rowcount
+                print(Fore.GREEN + f"[✓] Executed Succesfully! {affected} Rows Affected (!)" + Style.RESET_ALL)
+                return affected
+    except sqlite3.Error as e:
+        print(Fore.RED + f"[!] SQLite Error: {e}" + Style.RESET_ALL)
+    except Exception as e:
+        print(Fore.RED + f"[!] Unexpected Error: {e}" + Style.RESET_ALL)
 #############################################################################################
 ### CMS Detector
 #############################################################################################
@@ -629,3 +676,5 @@ if __name__ == "__main__":
             cursor.execute("SELECT COUNT(*) FROM sites WHERE status=? ",(statusvalue,))
             total = cursor.fetchone()[0]
             print(Fore.WHITE + f"{total:,}")
+    if executequerybool==True:
+        execute_query(executequery)
