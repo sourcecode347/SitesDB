@@ -44,7 +44,7 @@ Coded By SourceCode347
 print(colored(logo , "green"))
 r = RandomWords()
 global sitesdatabase,crawl,exportfile,restdbbool,resetdbname,exportbool,importbool,importfile,totalbool,cmsbool, \
-cmscountbool,cmscountname,cmslistbool,exportcmsbool,exportcmsname,statusexportbool,statusexportfile,statuscountbool,statusvalue
+cmscountbool,cmscountname,cmslistbool,exportcmsbool,exportcmsname,statusexportbool,statusexportfile,statuscountbool,statusvalue,cmsretestbool,cmsretestname
 sitesdatabase="sitesdb.db"
 exportfile="domains.txt"
 crawl=False
@@ -62,6 +62,8 @@ statusexportbool="False"
 statusexportfile="domains.txt"
 statuscountbool=False
 statusvalue="none"
+cmsretestbool=False
+cmsretestname="Unknown"
 resetdbname=sitesdatabase
 importfile="domains.txt"
 help = '''
@@ -89,6 +91,8 @@ help = '''
 | --cms-list       | Printing Supported CMS List                                      | False              |
 +------------------+------------------------------------------------------------------+--------------------+
 | --cms-export     | Export Domains by CMS and set status=exported ( CMSName.txt )    | Unknown            |
++------------------+------------------------------------------------------------------+--------------------+
+| --cms-retest     | Run New CMS Detection Where CMSName ( --cms-retest CMSName )     | Unknown            |
 +------------------+------------------------------------------------------------------+--------------------+
 | --status-export  | Setting status=exported From File list                           | domains.txt        |
 +------------------+------------------------------------------------------------------+--------------------+
@@ -126,6 +130,9 @@ for arg in range(0,len(sys.argv)):
     if sys.argv[arg-1]=="--cms-export":
         exportcmsname=str(sys.argv[arg])
         exportcmsbool=True
+    if sys.argv[arg-1]=="--cms-retest":
+        cmsretestname=str(sys.argv[arg])
+        cmsretestbool=True
     if sys.argv[arg-1]=="--status-export":
         statusexportfile=str(sys.argv[arg])
         statusexportbool=True
@@ -208,11 +215,11 @@ def exportdomainsdb():
         cursor = conn.cursor()
         cursor.execute("SELECT domain FROM sites WHERE status = 'none' ORDER BY id DESC LIMIT 5000")
         return cursor.fetchall()
-def exportcmsdb():
+def exportcmsdb(cmsname):
     with sqlite3.connect(sitesdatabase) as conn:
         conn.row_factory = lambda cursor, row: row[0]
         cursor = conn.cursor()
-        cursor.execute("SELECT domain FROM sites WHERE cms = 'none' ORDER BY id DESC LIMIT 5000")
+        cursor.execute(f"SELECT domain FROM sites WHERE cms = '{cmsname}' ORDER BY id DESC LIMIT 5000")
         return cursor.fetchall()
 def exportdomainsbycmsdb(cms):
     with sqlite3.connect(sitesdatabase) as conn:
@@ -263,7 +270,72 @@ CMS_SIGNATURES = {
     ],
     "Blogger": [
         r'blogspot.com', r'blogger'
-    ]
+    ],
+    "Webflow": [
+        r'webflow.com', r'data-wf-', r'cdn.prod.website-files.com',
+        r'meta content="Webflow" name="generator',
+        r'<!-- This site was created in Webflow'
+    ],
+    "Weebly": [
+        r'weebly.com', r'weebly-site.com',
+        r'meta name="generator" content="Weebly'
+    ],
+    "TYPO3": [
+        r'typo3', r'/typo3temp/', r'/typo3conf/',
+        r'TYPO3', r'meta name="generator" content="TYPO3'
+    ],
+    "Bitrix": [
+        r'bitrix', r'/bitrix/', r'BX_',
+        r'Bitrix', r'meta name="generator" content="Bitrix'
+    ],
+    "OpenCart": [
+        r'opencart', r'/catalog/view/theme/', r'OpenCart'
+    ],
+    "BigCommerce": [
+        r'bigcommerce.com', r'static.bigcommerce.com',
+        r'BigCommerce'
+    ],
+    "WooCommerce": [
+        r'woocommerce', r'/wp-content/plugins/woocommerce/'
+    ],
+    "Craft_CMS": [
+        r'craftcms', r'Craft CMS', r'data-craft'
+    ],
+    "Umbraco": [
+        r'umbraco', r'/umbraco/', r'Umbraco'
+    ],
+    "Concrete_CMS": [
+        r'concrete', r'concrete5', r'Concrete CMS'
+    ],
+    "HubSpot": [
+        r'hubspot', r'hs-scripts.com', r'HubSpot'
+    ],
+    "GoDaddy": [
+        r'godaddysites.com', r'GoDaddy'
+    ],
+    "Duda": [
+        r'duda.co', r'Duda'
+    ],
+    "Tilda": [
+        r'tilda.ws', r'Tilda'
+    ],
+    "Strapi": [
+        r'strapi', r'Strapi'
+    ],
+    "Contentful": [
+        r'contentful', r'Contentful'
+    ],
+    "Sanity": [
+        r'sanity.io', r'Sanity'
+    ],
+    "Sitecore": [
+        r'sitecore', r'Sitecore'
+    ],
+    "Kentico": [r'kentico', r'Kentico'],
+    "Magnolia": [r'magnolia', r'Magnolia CMS'],
+    "Liferay": [r'liferay', r'Liferay'],
+    "Alfresco": [r'alfresco', r'Alfresco'],
+    "Backbone": [r'backbone', r'Backbone.js'],
 }
 def get_domain(url):
     if not url.startswith(('http://', 'https://')):
@@ -275,10 +347,10 @@ def detect_cms(url):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                           '(KHTML, like Gecko) Chrome/128.0 Safari/537.36'
         }
-        response = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
+        print(Fore.CYAN + f"🔍 Analyzing: {url}")
+        response = requests.get(url, headers=headers, timeout=10, allow_redirects=True)
         content = response.text.lower()
         final_url = response.url
-        print(Fore.CYAN + f"🔍 Analyzing: {final_url}")
         print(Fore.CYAN + f"Status Code: {response.status_code}")
         detected = []
         for cms, signatures in CMS_SIGNATURES.items():
@@ -455,13 +527,26 @@ if __name__ == "__main__":
         batch_num = 0
         while True:
             batch_num += 1
-            domains = exportcmsdb()
+            domains = exportcmsdb('none')
             if not domains:
                 print(Fore.YELLOW + f"[!] No more domains with cms=none found.")
                 break
             for d in domains:
                 setcmsdb(d,detect_cms(get_domain(d)))
         print(Fore.GREEN + f"\n[+] Detecting completed! {total:,} CMS of domains Updated to {sitesdatabase}")
+    if cmsretestbool==True:
+        print(Fore.CYAN + f"📤 Starting ReDetecting CMS of domains with cms={cmsretestname} to {sitesdatabase}")   
+        total = 0
+        batch_num = 0
+        while True:
+            batch_num += 1
+            domains = exportcmsdb(cmsretestname)
+            if not domains:
+                print(Fore.YELLOW + f"[!] No more domains with cms={cmsretestname} found.")
+                break
+            for d in domains:
+                setcmsdb(d,detect_cms(get_domain(d)))
+        print(Fore.GREEN + f"\n[+] Detecting completed! {total:,} CMS={cmsretestname} of domains Updated to {sitesdatabase}")
     if cmscountbool==True:
         print(Fore.CYAN + f"📊 Total domains in DB : {sitesdatabase} with cms={cmscountname} : ", end="")
         with sqlite3.connect(sitesdatabase) as conn:
