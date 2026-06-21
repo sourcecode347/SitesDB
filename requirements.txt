@@ -2,5 +2,4 @@ selenium
 random_word
 termcolor
 colorama
-sqlite3
 requests
