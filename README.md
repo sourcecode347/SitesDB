@@ -1,5 +1,5 @@
 # SitesDB 
-Domain Database Builder
+**Domain Database Builder with CMS Detection**
 
 <img src="https://github.com/sourcecode347/SitesDB/blob/main/SitesDB.png" style="width:100%;height:auto;"/>
 
@@ -9,7 +9,7 @@ Open SitesDB Script with text editor and go to the Settings Sector and set up th
 
 To Setup SitesDB Script execute this command :
 
-    pip install requirements.txt
+    pip install -r requirements.txt
 
 To use the SitesDB Script execute this Command :
 
