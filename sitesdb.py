@@ -548,12 +548,11 @@ if __name__ == "__main__":
         res=resetdb()
         print(Fore.CYAN + f"[+] DB : {sitesdatabase} Has Reseted , {res} Rows Affected")
     if exportbool==True:
-        print(Fore.CYAN + f"📤 Starting export of domains with status=none to {exportfile} to to DB : {sitesdatabase}")
+        print(Fore.CYAN + f"📤 Starting export of domains with status=none to {exportfile} From DB : {sitesdatabase}")
         filecreator(exportfile)    
         total_exported = 0
         batch_num = 0
         while True:
-            print(exportlimit)
             if exportlimit<=total_exported:
                 break
             batch_num += 1
